@@ -196,6 +196,7 @@ body.light-map .leaflet-control-attribution{background:#ffffffcc!important;color
       <button class="btn on" id="btn-raster" onclick="toggleRaster()">🔥 Îlots (pixels)</button>
       <button class="btn on" id="btn-zones" onclick="toggleZones()">🗺️ Zones (%)</button>
       <button class="btn" id="btn-bld" onclick="toggleBld()">🏢 Immeubles</button>
+      <button class="btn on" id="btn-lieux" onclick="toggleLieux()" title="Afficher ou masquer les lieux sensibles">👁 Lieux</button>
       <select id="sel-base" title="Fond de carte">
         <option value="esri" selected="">Fond Esri (sombre)</option>
         <option value="qc">Gouv. du Québec</option>
@@ -203,7 +204,7 @@ body.light-map .leaflet-control-attribution{background:#ffffffcc!important;color
         <option value="cartolight">CartoDB (pâle)</option>
       </select>
       <div class="fontctl"><button onclick="setFont(-1)" title="Réduire la police">A−</button><button onclick="setFont(1)" title="Agrandir la police">A+</button></div>
-      <button class="btn" id="btn-poi" onclick="togglePOI()" title="Lieux sensibles et refuges">📍 Lieux</button>
+      <button class="btn" id="btn-poi" onclick="togglePOI()" title="Ouvrir le panneau des lieux sensibles">📍 Panneau lieux</button>
       <button class="btn" onclick="exportXLSX()">⬇ Excel</button>
       <button class="btn" onclick="exportGeoJSON()">⬇ GeoJSON</button>
     </div>
@@ -560,6 +561,7 @@ var POI_CATS=[
 ];
 var CATBYID={}; POI_CATS.forEach(function(k){CATBYID[k.id]=k;});
 var POI_DATA=[], POI_TERR=null, POI_BUSY=false, POI_SRC='', POI_ILOTONLY=false;
+var POI_VISIBLE=true;
 map.createPane('poi'); map.getPane('poi').style.zIndex=460;
 var poiRenderer=L.canvas({pane:'poi',padding:.5});
 var poiLayer=L.layerGroup().addTo(map);
@@ -775,7 +777,18 @@ function renderPOI(){
       +(isl?' · en îlot (seuil +'+SEUIL+' °C)':'')+'</span></div>',{className:'tt'});
     poiLayer.addLayer(mk);
   });
-  document.getElementById('legend-poi').style.display=POI_DATA.length?'block':'none';
+  if(POI_VISIBLE&&!map.hasLayer(poiLayer))poiLayer.addTo(map);
+  majLegendePOI();
+}
+function majLegendePOI(){
+  document.getElementById('legend-poi').style.display=(POI_VISIBLE&&POI_DATA.length)?'block':'none';
+}
+function toggleLieux(){
+  POI_VISIBLE=!POI_VISIBLE;
+  document.getElementById('btn-lieux').classList.toggle('on',POI_VISIBLE);
+  if(POI_VISIBLE){poiLayer.addTo(map);terrLayer.addTo(map);}
+  else{map.removeLayer(poiLayer);map.removeLayer(terrLayer);}
+  majLegendePOI();
 }
 function poiTable(){
   var res=document.getElementById('poi-res');
@@ -795,7 +808,7 @@ function poiTable(){
 function toggleIlotOnly(cb){POI_ILOTONLY=cb.checked;renderPOI();}
 function poiClear(){POI_DATA=[];POI_SRC='';poiLayer.clearLayers();terrLayer.clearLayers();POI_TERR=null;
   document.getElementById('poi-res').innerHTML='';
-  document.getElementById('legend-poi').style.display='none';
+  majLegendePOI();
   document.getElementById('poi-terrinfo').textContent='Aucun territoire chargé. La vue actuelle de la carte sert d\u2019emprise par défaut.';
   document.getElementById('poi-terr').value='view'; poiStatus('');}
 
